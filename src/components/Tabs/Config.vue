@@ -73,14 +73,14 @@ const configItems = helper.getConfigItems()
           >
             清空缓存
           </UButton>
-          <UFormField v-if="conf.configLevel.intermediate" label="投递数量">
+            <UFormField v-if="conf.configLevel.intermediate" label="今日沟通上限">
             <UInputNumber
-              label="投递数量"
-              data-help="达到上限后会自动暂停，默认100次, 当前boss上限为150"
+                label="今日沟通上限"
+                data-help="当天累计达到上限后停止发起新沟通；不是本轮新增数量。整数 1–150。"
               v-model="conf.formData.deliveryLimit.value"
               :min="1"
-              :max="155"
-              :step="10"
+                :max="150"
+                :step="1"
             />
           </UFormField>
         </div>

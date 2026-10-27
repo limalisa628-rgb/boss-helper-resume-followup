@@ -36,3 +36,9 @@ logapi.zhipin.*.pem
 .wxt
 
 /temp
+
+# Project-local runtime and private follow-up assets
+.tools/
+.superpowers/
+private-resumes/
+followup-exports/
