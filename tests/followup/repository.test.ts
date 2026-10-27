@@ -126,3 +126,19 @@ test('removing a PDF cancels unsent tasks but never resets the daily greeting bu
   assert.equal(await repo.reserveGreeting('account-1', 'another', 1, 0, 3200), false)
   await repo.close()
 })
+for (const oldStatus of ['queued', 'waiting-permission'] as const) {
+  test(`a stale ${oldStatus} task cannot swallow a new-epoch explicit request`, async () => {
+    const repo = await database()
+    await repo.acceptRequest({ ...queuedTask('old'), status: oldStatus })
+    await repo.saveSettings({ ...settings, mode: 'auto', epoch: 'new-epoch' })
+    const task = await repo.acceptRequest({ ...queuedTask('fresh'), epoch: 'new-epoch' })
+    assert.equal(task.status, 'queued')
+    const claimed = await repo.claimTask(settings.accountId, 'tab-A', 3000)
+    assert.equal(claimed?.id, 'fresh')
+    assert.equal(
+      (await repo.listTasks(settings.accountId)).find((t) => t.id === 'old')?.status,
+      'cancelled',
+    )
+    await repo.close()
+  })
+}

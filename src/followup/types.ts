@@ -116,6 +116,10 @@ export interface AttachmentSubmission {
 export interface AttachmentPort {
   capabilities(): { incoming: boolean; pdf: boolean; verified: boolean; reason: string }
   getContext(task: FollowupTask): Promise<AttachmentContext>
-  sendPdf(task: FollowupTask, asset: ResumeAsset): Promise<AttachmentSubmission>
+  sendPdf(
+    task: FollowupTask,
+    asset: ResumeAsset,
+    authorize: () => Promise<boolean>,
+  ): Promise<AttachmentSubmission>
   verifySent(task: FollowupTask, asset: ResumeAsset): Promise<AttachmentReceipt | null>
 }

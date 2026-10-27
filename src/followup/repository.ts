@@ -2,6 +2,7 @@ import { openDB } from 'idb'
 import type { DBSchema, IDBPDatabase } from 'idb'
 
 import { canStartDelivery } from './deliveryLimit.ts'
+import { resolveResume } from './matching.ts'
 import type {
   FollowupTask,
   FollowupSettings,
@@ -72,6 +73,19 @@ export class FollowupRepository {
       return existing
     }
     const tasks = await tx.store.index('account').getAll(task.accountId)
+    // Superseded requests that never reached submission are not live duplicate
+    // barriers. Cancel them atomically before checking the new activation.
+    for (const previous of tasks) {
+      if (
+        previous.epoch !== task.epoch &&
+        ['queued', 'waiting-permission'].includes(previous.status)
+      ) {
+        previous.status = 'cancelled'
+        previous.reason = 'superseded-activation'
+        previous.updatedAt = task.createdAt
+        await tx.store.put(previous)
+      }
+    }
     if (
       task.assetHash &&
       task.status !== 'simulation' &&
@@ -207,6 +221,57 @@ export class FollowupRepository {
     await tx.objectStore('tasks').put({ ...task, submittedAt: now, updatedAt: now })
     await tx.done
     return true
+  }
+  async isSubmissionAuthorized(id: string, owner: string, now: number): Promise<boolean> {
+    const tx = (await this.db).transaction(['tasks', 'settings', 'bindings', 'assets'], 'readonly')
+    const task = await tx.objectStore('tasks').get(id)
+    if (
+      !task ||
+      task.status !== 'sending' ||
+      task.leaseOwner !== owner ||
+      (task.leaseUntil ?? 0) <= now ||
+      task.submittedAt == null
+    ) {
+      await tx.done
+      return false
+    }
+    const settings = await tx.objectStore('settings').get(task.accountId)
+    const binding = task.bindingId
+      ? await tx.objectStore('bindings').get(task.bindingId)
+      : undefined
+    const asset = task.assetId ? await tx.objectStore('assets').get(task.assetId) : undefined
+    if (
+      !settings ||
+      settings.mode !== 'auto' ||
+      settings.epoch !== task.epoch ||
+      task.messageTimestamp <= settings.armedAt ||
+      !binding ||
+      !asset
+    ) {
+      await tx.done
+      return false
+    }
+    const match = resolveResume(
+      {
+        accountId: task.accountId,
+        conversationId: task.conversationId,
+        jobId: task.jobId,
+        messageId: task.messageId,
+        timestamp: task.messageTimestamp,
+        sender: 'recruiter',
+        text: '',
+      },
+      [binding],
+      [asset],
+      settings,
+    )
+    const allowed =
+      match.kind === 'matched' &&
+      binding.revision === task.bindingRevision &&
+      asset.hash === task.assetHash &&
+      asset.version === task.assetVersion
+    await tx.done
+    return allowed
   }
   async finalizeTask(
     id: string,

@@ -50,9 +50,11 @@ function surface() {
     async readReceipts() {
       return receipts
     },
-    async selectAndSend(id) {
+    async selectAndSend(id, authorize) {
+      if (!(await authorize())) return false
       clicked = id
       receipts = [...receipts, receipt]
+      return true
     },
     subscribeIncoming() {
       return () => {}
@@ -63,12 +65,12 @@ function surface() {
 test('the production default is unavailable and cannot send', async () => {
   const port = new BossAttachmentAdapter()
   assert.equal(port.capabilities().verified, false)
-  assert.equal((await port.sendPdf(task, asset)).kind, 'denied')
+  assert.equal((await port.sendPdf(task, asset, async () => true)).kind, 'denied')
 })
 test('a verified surface selects the uniquely matching PDF and confirms a new card', async () => {
   const fixture = surface()
   const port = new BossAttachmentAdapter(fixture.value)
-  assert.equal((await port.sendPdf(task, asset)).kind, 'submitted')
+  assert.equal((await port.sendPdf(task, asset, async () => true)).kind, 'submitted')
   assert.equal(fixture.clicked(), 'pdf-1')
   assert.equal((await port.verifySent(task, asset))?.evidenceId, 'card-2')
 })
@@ -78,7 +80,7 @@ test('same filename without a matching hash is never enough to select a file', a
     { id: 'other', filename: asset.filename, hash: 'b'.repeat(64) },
   ]
   const port = new BossAttachmentAdapter(fixture.value)
-  assert.equal((await port.sendPdf(task, asset)).kind, 'denied')
+  assert.equal((await port.sendPdf(task, asset, async () => true)).kind, 'denied')
   assert.equal(fixture.clicked(), '')
 })
 test('duplicate matching attachments and wrong active targets do not get clicked', async () => {
@@ -97,7 +99,7 @@ test('duplicate matching attachments and wrong active targets do not get clicked
         { id: 'two', filename: asset.filename, hash: asset.hash },
       ]
     assert.equal(
-      (await new BossAttachmentAdapter(fixture.value).sendPdf(task, asset)).kind,
+      (await new BossAttachmentAdapter(fixture.value).sendPdf(task, asset, async () => true)).kind,
       'denied',
     )
     assert.equal(fixture.clicked(), '')
@@ -105,8 +107,8 @@ test('duplicate matching attachments and wrong active targets do not get clicked
 })
 test('an old card or no new business receipt cannot confirm delivery', async () => {
   const fixture = surface()
-  fixture.value.selectAndSend = async () => {}
+  fixture.value.selectAndSend = async () => true
   const port = new BossAttachmentAdapter(fixture.value)
-  await port.sendPdf(task, asset)
+  await port.sendPdf(task, asset, async () => true)
   assert.equal(await port.verifySent(task, asset), null)
 })

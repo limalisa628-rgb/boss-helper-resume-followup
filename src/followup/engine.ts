@@ -18,6 +18,7 @@ export type FollowupStore = Pick<
   | 'listTasks'
   | 'claimTask'
   | 'reserveSubmission'
+  | 'isSubmissionAuthorized'
   | 'finalizeTask'
   | 'cancelTask'
 >
@@ -154,7 +155,9 @@ export async function processNextTask(
     reserved = await repo.reserveSubmission(task.id, owner, clock())
     if (!reserved) return finish('queued', 'daily-budget-delay-or-settings-change')
     const submittedAt = clock()
-    const submission = await port.sendPdf(task, file)
+    const authorize = () => repo.isSubmissionAuthorized(task.id, owner, clock())
+    if (!(await authorize())) return finish('cancelled', 'activation-or-lease-invalidated')
+    const submission = await port.sendPdf(task, file, authorize)
     if (submission.kind !== 'submitted')
       return finish(
         submission.kind === 'denied' ? 'review' : 'uncertain',

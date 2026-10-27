@@ -137,6 +137,8 @@ export async function handleFollowupRpc(
       return repo.claimTask(rpcString(args[0]), rpcString(args[1]), Number(args[2]))
     case 'reserveSubmission':
       return repo.reserveSubmission(rpcString(args[0]), rpcString(args[1]), Number(args[2]))
+    case 'isSubmissionAuthorized':
+      return repo.isSubmissionAuthorized(rpcString(args[0]), rpcString(args[1]), Number(args[2]))
     case 'finalizeTask':
       return repo.finalizeTask(
         rpcString(args[0]),

@@ -134,7 +134,11 @@ const configItems = helper.getConfigItems()
               value-key="value"
               create-item
               @create="conf.createPreset"
-              @update:model-value="(v: unknown) => { if (typeof v === 'string') conf.switchPreset(v) }"
+              @update:model-value="
+                (v: unknown) => {
+                  if (typeof v === 'string') conf.switchPreset(v)
+                }
+              "
             />
           </UFormField>
           <UButton

@@ -51,6 +51,9 @@ export class FollowupRuntimeClient implements FollowupStore {
   reserveSubmission(id: string, owner: string, now: number) {
     return this.call<boolean>('reserveSubmission', [id, owner, now])
   }
+  isSubmissionAuthorized(id: string, owner: string, now: number) {
+    return this.call<boolean>('isSubmissionAuthorized', [id, owner, now])
+  }
   finalizeTask(id: string, owner: string, patch: Partial<FollowupTask>, now: number) {
     return this.call<boolean>('finalizeTask', [id, owner, patch, now])
   }

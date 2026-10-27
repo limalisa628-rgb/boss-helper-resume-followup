@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import test from 'node:test'
 
+import { BossAttachmentAdapter } from '../../src/followup/bossAdapter.ts'
+import type { NativeAttachmentSurface } from '../../src/followup/bossAdapter.ts'
 import { acceptMessage, processNextTask } from '../../src/followup/engine.ts'
 import { FollowupRepository } from '../../src/followup/repository.ts'
 import type {
@@ -208,3 +210,82 @@ test('changing the binding during platform preflight prevents submission', async
   assert.equal(port.submissions.length, 0)
   await repo.close()
 })
+for (const stage of ['listAttachments', 'readReceipts', 'selectAndSend'] as const) {
+  for (const mode of ['off', 'simulation', 'switch-account'] as const) {
+    test(`review regression: ${mode} during ${stage} prevents the native submit`, async () => {
+      const repo = await setup()
+      await acceptMessage(repo, message, 2500)
+      let sends = 0
+      let changed = false
+      async function boundary(at: typeof stage) {
+        if (at !== stage || changed) return
+        changed = true
+        await repo.saveSettings({
+          ...settings,
+          mode: mode === 'simulation' ? 'simulation' : 'off',
+          epoch: 'changed-while-selecting',
+        })
+        if (mode === 'switch-account')
+          await repo.saveSettings({
+            ...settings,
+            accountId: 'other-account',
+            mode: 'off',
+            epoch: 'other-account-session',
+          })
+      }
+      const surface: NativeAttachmentSurface = {
+        verified: true,
+        async readContext() {
+          return {
+            accountId: message.accountId,
+            conversationId: message.conversationId,
+            jobId: 'job-1',
+            canSend: true,
+          }
+        },
+        async listAttachments() {
+          await boundary('listAttachments')
+          return [{ id: 'pdf', filename: asset.filename, hash: realHash }]
+        },
+        async readReceipts() {
+          await boundary('readReceipts')
+          return sends
+            ? [
+                {
+                  accountId: message.accountId,
+                  conversationId: message.conversationId,
+                  jobId: 'job-1',
+                  assetHash: realHash,
+                  evidenceId: 'new-receipt',
+                  timestamp: 3000,
+                  filename: asset.filename,
+                  isSelf: true,
+                  platformConfirmed: true,
+                },
+              ]
+            : []
+        },
+        async selectAndSend(_id: string, authorize?: () => Promise<boolean>) {
+          await boundary('selectAndSend')
+          if (authorize && !(await authorize())) return false
+          sends++
+          return true
+        },
+        subscribeIncoming() {
+          return () => {}
+        },
+      }
+      await processNextTask(
+        repo,
+        new BossAttachmentAdapter(surface),
+        settings.accountId,
+        'tab-A',
+        () => 3000,
+      )
+      assert.equal(changed, true)
+      assert.equal(sends, 0)
+      assert.notEqual((await repo.listTasks(settings.accountId))[0]!.status, 'sent')
+      await repo.close()
+    })
+  }
+}

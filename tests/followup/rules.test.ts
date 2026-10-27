@@ -61,3 +61,18 @@ test('normalises full-width Latin text and whitespace', () => {
     'request',
   )
 })
+for (const text of [
+  '先别发简历，等我通知',
+  '暂时不发简历，先聊一下',
+  '如果面试通过，再发简历给我',
+  '我会帮你转发简历',
+  'You should not send your resume yet.',
+  'Please do not send your CV',
+  'I will forward your resume',
+  '明天再发简历吧',
+  "The phrase 'send your resume' is an example.",
+]) {
+  test(`review regression: no action for deferred, negated or third-party action: ${text}`, () => {
+    assert.notEqual(classifyResumeRequest({ ...message, text }).kind, 'request')
+  })
+}

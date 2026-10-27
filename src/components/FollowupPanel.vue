@@ -55,6 +55,7 @@ const statusNames: Record<string, string> = {
   duplicate: '重复请求已拦截',
 }
 const reasonNames: Record<string, string> = {
+  'deferred-conditional-or-other-actor': '这是条件、稍后发送或他人动作，不立即发送。',
   'city-unverified': '请核实实际办公城市并设置城市白名单。',
   'fixed-base-unverified': '请核实固定底薪，招聘薪资区间不能代替底薪。',
   'city-outside-allowlist': '实际办公城市不在白名单内。',

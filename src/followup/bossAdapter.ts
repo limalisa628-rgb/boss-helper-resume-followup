@@ -12,7 +12,9 @@ export interface NativeAttachmentSurface {
   readContext(): Promise<AttachmentContext>
   listAttachments(): Promise<Array<{ id: string; filename: string; hash: string }>>
   readReceipts(): Promise<AttachmentReceipt[]>
-  selectAndSend(id: string): Promise<void>
+  // Recheck after asynchronous preparation and immediately before each
+  // consequential action. Return false when no native submission occurred.
+  selectAndSend(id: string, authorize: () => Promise<boolean>): Promise<boolean>
   subscribeIncoming(handler: (message: MessageEnvelope) => void): () => void
 }
 export class BossAttachmentAdapter implements AttachmentPort {
@@ -43,7 +45,11 @@ export class BossAttachmentAdapter implements AttachmentPort {
           reason: this.capabilities().reason,
         }
   }
-  async sendPdf(task: FollowupTask, asset: ResumeAsset): Promise<AttachmentSubmission> {
+  async sendPdf(
+    task: FollowupTask,
+    asset: ResumeAsset,
+    authorize: () => Promise<boolean>,
+  ): Promise<AttachmentSubmission> {
     if (!this.capabilities().verified)
       return { kind: 'denied', reason: 'unverified-platform-adapter' }
     const surface = this.surface!
@@ -72,9 +78,23 @@ export class BossAttachmentAdapter implements AttachmentPort {
       current.jobId !== task.jobId
     )
       return { kind: 'denied', reason: 'target-changed-before-click' }
+    const nativeGuard = async () => {
+      if (!(await authorize())) return false
+      const target = await surface.readContext()
+      return (
+        target.canSend &&
+        target.accountId === task.accountId &&
+        target.conversationId === task.conversationId &&
+        target.jobId === task.jobId &&
+        (await authorize())
+      )
+    }
+    if (!(await nativeGuard())) return { kind: 'denied', reason: 'activation-or-lease-invalidated' }
     try {
-      await surface.selectAndSend(candidates[0]!.id)
-      return { kind: 'submitted' }
+      const submitted = await surface.selectAndSend(candidates[0]!.id, nativeGuard)
+      return submitted
+        ? { kind: 'submitted' }
+        : { kind: 'denied', reason: 'cancelled-before-native-submit' }
     } catch {
       return { kind: 'uncertain', reason: 'platform-action-interrupted' }
     }
