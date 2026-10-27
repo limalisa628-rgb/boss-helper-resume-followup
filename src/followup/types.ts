@@ -26,3 +26,26 @@ export interface FollowupSettings {
 }
 export type MatchDecision = { kind: 'matched'; asset: ResumeAsset; binding: JobBinding } |
   { kind: 'review' | 'blocked'; reason: string }
+
+export type TaskStatus = 'simulation' | 'review' | 'blocked' | 'queued' | 'waiting-permission' | 'sending' | 'sent' | 'failed' | 'uncertain' | 'cancelled' | 'duplicate'
+export interface FollowupTask {
+  id: string; accountId: string; conversationId: string; jobId: string; messageId: string
+  messageTimestamp: number; createdAt: number; updatedAt: number; epoch: string
+  status: TaskStatus; reason: string; assetId?: string; assetHash?: string; assetVersion?: string
+  bindingId?: string; bindingRevision?: number; leaseOwner?: string; leaseUntil?: number
+  submittedAt?: number; evidenceId?: string
+}
+export interface AttachmentContext {
+  accountId: string; conversationId: string; jobId: string; canSend: boolean; reason?: string
+}
+export interface AttachmentReceipt {
+  accountId: string; conversationId: string; jobId: string; assetHash: string
+  evidenceId: string; timestamp: number; filename: string; isSelf: boolean; platformConfirmed: boolean
+}
+export interface AttachmentSubmission { kind: 'submitted' | 'denied' | 'failed' | 'uncertain'; reason?: string }
+export interface AttachmentPort {
+  capabilities(): { incoming: boolean; pdf: boolean; verified: boolean; reason: string }
+  getContext(task: FollowupTask): Promise<AttachmentContext>
+  sendPdf(task: FollowupTask, asset: ResumeAsset): Promise<AttachmentSubmission>
+  verifySent(task: FollowupTask, asset: ResumeAsset): Promise<AttachmentReceipt | null>
+}
