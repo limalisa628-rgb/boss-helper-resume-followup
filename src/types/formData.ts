@@ -23,6 +23,7 @@ export interface FormData {
   companySizeRange: FormDataRangeInput
   customGreeting: FormDataInput
   deliveryLimit: FormDataInputNumber
+  dailyGreetingBaseline: { date: string; externalCount: number; verified: boolean }
   greetingVariable: FormDataCheckbox
   activityFilter: FormDataCheckbox
   friendStatus: FormDataCheckbox

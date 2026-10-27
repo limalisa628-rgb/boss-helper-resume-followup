@@ -1,3 +1,66 @@
+# Boss Helper · 简历跟进实验版
+
+基于 [Ocyss/boss-helper](https://github.com/Ocyss/boss-helper) 的独立衍生版本：招聘者明确索要简历后，以本地规则匹配对应 PDF。
+
+**当前不是可无人值守自动发 PDF 的正式版。** 真实 BOSS 消息与附件通道尚未现场联调，生产默认适配器无法启用自动发送。浏览器中的合成数据测试通过，不代表真实平台兼容性已确认。
+
+## 当前能力
+
+- 本地识别中英文索要表达；否定、引用、特殊格式和站外发送要求转人工处理。
+- 两类岗位方向、显式 PDF 版本和 SHA-256 绑定；城市与固定底薪未核实就不放行。
+- 扩展本地 IndexedDB 保存文件与任务；配置导出不含 PDF、账户、登录信息或完整聊天。
+- 多标签页任务租约、发送前额度预留；不确定的发送结果不自动重试。
+- 本地工作台仅提供演练，不联系招聘者，不把图片或招呼语当作 PDF 已投递。
+
+## 沟通限额修复
+
+核对官方 0.5.2 Chrome 发布包发现，其执行循环未检查 `deliveryLimit`，界面显示上限却仍可能继续处理岗位。数字输入从 1 起按 10 递增，也可能把 10 调整成 11。
+
+本版增加执行前检查、数据库事务额度预留和整数输入。发送前占用名额，失败／超时不自动退回；多标签页共用额度。上限是当天累计，不是本轮新增。
+
+新扩展不会继承旧扩展计数，开始前必须核实当天旧版／其他渠道已联系人数。已联系 56、上限 11 时，不允许继续发起沟通；每天需要重新确认基数。
+
+`tools/reproduce-official-limit.mjs` 使用原发布包执行循环和无副作用的内存依赖：构造 93 个岗位、过滤 37 个，设上限 11 时原循环得到 56 次成功。**这是合成复现，不是用户真实日志**，不联网、不读取浏览器或登录数据。
+
+## 构建与测试
+
+需要 Node 24+ 和 Bun。可从 [Bun 官方发布页](https://github.com/oven-sh/bun/releases) 下载便携版放在项目 `.tools/`，无需全局安装或修改 PATH。不要提交二进制、缓存和 node_modules。
+
+```powershell
+git submodule update --init --recursive
+bun install --ignore-scripts
+bun run prepare:types
+bun run test
+bun run check:followup
+bun run build:chrome
+```
+
+`bun` 可替换为项目内 bun.exe 的绝对路径。Chrome 输出目录为 `.output/chrome-mv3/`。Windows 构建包装脚本等待 WXT 公共 build API 完成后退出，解决上游 CLI 完成后仍保留句柄的问题；构建失败仍返回非零退出码。
+
+TypeScript 使用与当前 Vue 检查器兼容的 5.9 系列。`check:followup` 覆盖新增模块、工作台和测试；上游全量 `check` 的 `devlog-ui` 测试及类型指令仍有遗留错误，不能宣称全仓库检查通过。
+
+运行 `bun run fixture:dev` 后打开 `http://127.0.0.1:5197/`，可用明确标注的合成数据演练，并在真实浏览器中运行 IndexedDB 并发自检。此入口不包含在生产构建中。
+
+## 安装与边界
+
+停止当前批量沟通，停用官方版并刷新 BOSS 页面，避免同页残留两个脚本。Chrome 开发者模式加载 `.output/chrome-mv3/`，点击 BOSS 页右侧“简历跟进”。本版使用独立扩展标识，不覆盖官方版。
+
+首次工作台显示的是本地演练档案。可以导入 PDF、绑定演练岗位、核实条件和模拟匹配；演练岗位不等于真实 BOSS 会话。真实自动 PDF 功能保持禁用，直到消息标识、权限、PDF 选择与回执均完成现场联调。
+
+未来真实通道就绪后，也只在浏览器登录、受支持聊天页保持打开并主动启用时运行。不支持关闭浏览器后继续，不绕过授权、验证码和发送限额。发送成功和对方已阅读分别判断。
+
+详见 [平台验证记录](docs/followup-platform-validation.md)、[规则与数据边界](docs/resume-followup.md) 和 [交付检查](docs/release-checklist.md)。
+
+## 来源与许可
+
+保留 [LICENSE](LICENSE)、原作者版权和 [上游 README](docs/UPSTREAM_README.md)。上游 LICENSE 为 MIT，README 同时含有非商业用途表述，两者存在差异；本版如实保留，不宣称获得额外商业授权。
+
+下面保留上游原文；它描述的是原项目，不代表本衍生版新增的自动 PDF 通道已可用。
+
+---
+
+## 上游原文
+
 > [!CAUTION]
 > 本项目仅供学习交流，禁止用于商业用途
 >

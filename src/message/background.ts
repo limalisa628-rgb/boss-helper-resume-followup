@@ -3,6 +3,7 @@ import { openDB } from 'idb'
 
 import type { Browser } from '#imports'
 import { browser } from '#imports'
+import { FollowupRepository } from '@/followup/repository'
 import type { ResponseType } from '@/utils/request'
 
 export const userKey = 'local:conf-user'
@@ -21,6 +22,14 @@ async function initDB() {
 }
 
 export class BackgroundCounter {
+  async reserveGreeting(account: string, job: string, limit: number, knownCount: number) {
+    const repository = new FollowupRepository()
+    try {
+      return await repository.reserveGreeting(account, job, limit, knownCount, Date.now())
+    } finally {
+      await repository.close()
+    }
+  }
   async request(args: {
     url: string
     data: RequestInit

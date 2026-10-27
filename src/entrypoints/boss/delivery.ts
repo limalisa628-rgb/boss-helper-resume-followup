@@ -1,5 +1,8 @@
 import { TaskRegistry, taskResult } from '@/composables/useApplying/handles'
 import { defineTaskHandler, defineTaskWorkflow } from '@/composables/useApplying/type'
+import { verifiedDailyTotal } from '@/followup/deliveryLimit'
+import { counter } from '@/message'
+import { getCurDay } from '@/utils'
 
 import type { BossHelperCtx } from '.'
 import { getBossData, sendPublishReq } from './requests'
@@ -72,7 +75,20 @@ export const bossWorkflow = defineTaskWorkflow<BossHelperCtx, BoosJobData>(
   tasks.amap({ deps: ['岗位详情获取'] }), // 高德地图
   tasks.aiFiltering({ deps: ['岗位详情获取'] }), // AI过滤
 
-  defineTaskHandler('岗位投递', () => async (_, { rawData }) => {
+  defineTaskHandler('岗位投递', () => async (ctx, { rawData, jobData }) => {
+    const total = verifiedDailyTotal(
+      ctx.helper.statistics.todayData.value.success,
+      ctx.helper.conf.formData.dailyGreetingBaseline,
+      getCurDay(),
+    )
+    if (total == null) return taskResult.skip('当天沟通基数尚未核实，未发送')
+    const reserved = await counter.reserveGreeting(
+      ctx.helper.uid,
+      jobData.key,
+      ctx.helper.conf.formData.deliveryLimit.value,
+      total,
+    )
+    if (!reserved) return taskResult.skip('今日沟通额度已用完或此岗位已预留，未发送')
     await sendPublishReq({
       securityId: rawData.jobitem.securityId,
       encryptJobId: rawData.jobitem.encryptJobId,

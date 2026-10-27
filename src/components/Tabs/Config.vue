@@ -3,6 +3,7 @@ import Alert from '@/components/Alert.vue'
 import { formInfoData, useConf } from '@/composables/conf'
 import { getCacheManager } from '@/composables/useApplying'
 import { useHelper } from '@/composables/useHelper'
+import { getCurDay } from '@/utils'
 
 import ConfigItem from './ConfigItem/ConfigItem.vue'
 
@@ -73,16 +74,37 @@ const configItems = helper.getConfigItems()
           >
             清空缓存
           </UButton>
-            <UFormField v-if="conf.configLevel.intermediate" label="今日沟通上限">
+          <UFormField v-if="conf.configLevel.intermediate" label="今日沟通上限">
             <UInputNumber
-                label="今日沟通上限"
-                data-help="当天累计达到上限后停止发起新沟通；不是本轮新增数量。整数 1–150。"
+              label="今日沟通上限"
+              data-help="当天累计达到上限后停止发起新沟通；不是本轮新增数量。整数 1–150。"
               v-model="conf.formData.deliveryLimit.value"
               :min="1"
-                :max="150"
-                :step="1"
+              :max="150"
+              :step="1"
             />
           </UFormField>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-4 items-center">
+          <UFormField
+            label="今天旧版或其他渠道已联系人数"
+            data-help="定制版不会自动继承旧扩展的计数；填写今天在本定制版之外已联系的人数，避免重新安装后从零开始超投。"
+          >
+            <UInputNumber
+              v-model="conf.formData.dailyGreetingBaseline.externalCount"
+              :min="0"
+              :step="1"
+            />
+          </UFormField>
+          <UCheckbox
+            v-model="conf.formData.dailyGreetingBaseline.verified"
+            label="我已核实今天的基数"
+            @update:model-value="
+              (value: unknown) => {
+                conf.formData.dailyGreetingBaseline.date = value ? getCurDay() : ''
+              }
+            "
+          />
         </div>
       </UForm>
       <div class="flex flex-row *:flex *:flex-row justify-between *:gap-3 mt-3">
@@ -112,7 +134,7 @@ const configItems = helper.getConfigItems()
               value-key="value"
               create-item
               @create="conf.createPreset"
-              @update:model-value="(v) => conf.switchPreset(v)"
+              @update:model-value="(v: unknown) => { if (typeof v === 'string') conf.switchPreset(v) }"
             />
           </UFormField>
           <UButton

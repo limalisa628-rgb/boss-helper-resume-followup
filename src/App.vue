@@ -14,6 +14,8 @@ import Logs from '@/components/Tabs/Logs.vue'
 import Statistics from '@/components/Tabs/Statistics.vue'
 import { useConf, appearanceConf } from '@/composables/conf'
 import { useModel } from '@/composables/useModel'
+import { verifiedDailyTotal } from '@/followup/deliveryLimit'
+import { getCurDay } from '@/utils'
 
 import { useHelper, VITE_VERSION } from './composables/useHelper'
 
@@ -191,7 +193,14 @@ function onPointerMove(ev: PointerEvent) {
               </UButton>
             </UChip>
             <span v-if="todayData.total > 0" style="margin-right: 15px">
-              今日投递: {{ todayData.success }}/{{ conf.formData.deliveryLimit.value }}
+              今日沟通:
+              {{
+                verifiedDailyTotal(
+                  todayData.success,
+                  conf.formData.dailyGreetingBaseline,
+                  getCurDay(),
+                ) ?? '待核实'
+              }}/{{ conf.formData.deliveryLimit.value }}
             </span>
             <span v-if="helper.workflow && helper.workflow.total.value > 0">
               当前页面处理: {{ helper.workflow.current.value }}/{{ helper.workflow.total.value }}

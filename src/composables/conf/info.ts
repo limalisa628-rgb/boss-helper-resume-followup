@@ -186,8 +186,9 @@ export const defaultFormData: FormData = {
     enable: false,
   },
   deliveryLimit: {
-    value: 120,
+    value: 10,
   },
+  dailyGreetingBaseline: { date: '', externalCount: 0, verified: false },
   greetingVariable: {
     value: false,
   },

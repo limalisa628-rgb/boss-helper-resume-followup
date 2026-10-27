@@ -1,6 +1,7 @@
-import test from 'node:test'
 import assert from 'node:assert/strict'
-import { canStartDelivery } from '../../src/followup/deliveryLimit.ts'
+import test from 'node:test'
+
+import { canStartDelivery, verifiedDailyTotal } from '../../src/followup/deliveryLimit.ts'
 
 test('stops before the twelfth attempt when the limit is eleven', () => {
   let completed = 0
@@ -27,4 +28,11 @@ test('bad or uninitialised counters and limits fail closed', () => {
     assert.equal(canStartDelivery(value, 11), false)
   }
   assert.equal(canStartDelivery(0, 0), false)
+})
+test('a newly installed fork requires a verified current-day baseline and counts other channels', () => {
+  const baseline = { date: '2026-10-27', externalCount: 56, verified: true }
+  assert.equal(verifiedDailyTotal(2, baseline, '2026-10-27'), 58)
+  assert.equal(verifiedDailyTotal(0, { ...baseline, verified: false }, '2026-10-27'), null)
+  assert.equal(verifiedDailyTotal(0, baseline, '2026-10-28'), null)
+  assert.equal(verifiedDailyTotal(0, undefined, '2026-10-27'), null)
 })

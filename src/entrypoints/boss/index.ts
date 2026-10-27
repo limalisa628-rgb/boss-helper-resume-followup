@@ -8,9 +8,11 @@ import type { JobData } from '@/composables/useHelper'
 import { HelperContext } from '@/composables/useHelper'
 import type { AlertItem, ConfigAccordionItem } from '@/composables/useHelper/type'
 import { getRootVue, useHookVueData, useHookVueFn } from '@/composables/useVue'
+import { verifiedDailyTotal } from '@/followup/deliveryLimit'
 import { run } from '@/index'
 import { counter, initCounter } from '@/message'
 import type { FormDataInput } from '@/types/formData'
+import { getCurDay } from '@/utils'
 import elmGetter from '@/utils/elmGetter'
 import { logger } from '@/utils/logger'
 
@@ -211,6 +213,19 @@ export class BossHelperCtx extends HelperContext<BossHelperCtx, BoosJobData, {}>
   }
 
   async start() {
+    if (
+      verifiedDailyTotal(
+        this.statistics.todayData.value.success,
+        this.conf.formData.dailyGreetingBaseline,
+        getCurDay(),
+      ) == null
+    ) {
+      useToast().add({
+        color: 'warning',
+        title: '请先在配置中核实今天旧版或其他渠道已联系人数，再开始沟通。',
+      })
+      return
+    }
     if (!this.workflow) {
       this.workflow = await bossWorkflow(this)
     }

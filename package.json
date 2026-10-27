@@ -1,7 +1,7 @@
 {
-  "name": "boss-helper",
-  "displayName": "BossHelper",
-  "version": "0.5.2.2",
+  "name": "boss-helper-resume-followup",
+  "displayName": "Boss Helper · 简历跟进实验版",
+  "version": "0.6.0",
   "private": true,
   "description": "Boss直聘助手, 皆在减少投递简历的麻烦, 和提高投递简历的效率,技术栈使用VIte + Vue3 + element-plus",
   "workspaces": [
@@ -14,8 +14,11 @@
     "dev:firefox": "wxt -b firefox --mv3",
     "postinstall": "wxt prepare",
     "check": "vue-tsc --noEmit",
+    "test": "node --test tests/followup/*.test.ts",
+    "check:followup": "vue-tsc --noEmit -p tsconfig.followup.json",
+    "fixture:dev": "vite --config tools/vite-fixture.config.ts",
     "build": "run-p build:chrome build:firefox build:edge",
-    "build:chrome": "wxt build -b chrome",
+    "build:chrome": "node tools/build-chrome.mjs",
     "build:firefox": "wxt build -b firefox --mv3",
     "build:edge": "wxt build -b edge",
     "zip": "run-p zip:chrome zip:firefox zip:edge",
@@ -26,7 +29,7 @@
     "fmt:check": "oxfmt --check",
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --type-aware --fix",
-    "prepare": "husky"
+    "prepare:types": "wxt prepare"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.36",
@@ -45,10 +48,12 @@
     "vue": "^3.5.41"
   },
   "devDependencies": {
+    "@ai-sdk/provider": "4.0.7",
     "@tailwindcss/typography": "^0.5.20",
     "@types/chrome": "^0.2.5",
     "@types/node": "^26.2.0",
     "@types/spark-md5": "^3.0.5",
+    "@vitejs/plugin-vue": "^6.0.10",
     "@vitejs/plugin-vue-jsx": "^5.1.6",
     "@vue/tsconfig": "^0.9.1",
     "@vueuse/core": "^14.4.0",
@@ -66,6 +71,7 @@
     "ts-proto": "^2.12.0",
     "typescript": "5.9.3",
     "uid": "^2.0.2",
+    "vite": "8.2.1",
     "vite-plugin-tailwind-shadowdom": "^1.1.1",
     "vue-tsc": "^3.3.9",
     "wxt": "^0.21.3"

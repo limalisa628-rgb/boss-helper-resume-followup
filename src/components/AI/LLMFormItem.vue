@@ -59,7 +59,7 @@ const isSetVal = ref(fromVal.value !== undefined)
       v-if="info.config?.disabled || !info.required"
       v-model="isSetVal"
       @update:model-value="
-        (x) => {
+        (x: unknown) => {
           if (!x) fromVal = undefined
         }
       "

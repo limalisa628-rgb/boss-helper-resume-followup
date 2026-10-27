@@ -46,6 +46,9 @@ export class ContentCounter implements BackgroundCounter {
   async fetch(...args: Parameters<typeof fetch>) {
     return this.background.fetch(...args)
   }
+  async reserveGreeting(...args: Parameters<BackgroundCounter['reserveGreeting']>) {
+    return this.background.reserveGreeting(...args)
+  }
 
   async getImage(...args: Parameters<BackgroundCounter['getImage']>) {
     return this.background.getImage(...args)

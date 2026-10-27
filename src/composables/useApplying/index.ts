@@ -2,8 +2,9 @@ import type { ContextLogger } from 'devlog-ui'
 import { shallowRef, ref } from 'vue'
 
 import { PipelineCacheManager } from '@/composables/usePipelineCache'
-import { canStartDelivery } from '@/followup/deliveryLimit'
+import { canStartDelivery, verifiedDailyTotal } from '@/followup/deliveryLimit'
 import type { PipelineCacheItem, ProcessorType } from '@/types/pipelineCache'
+import { getCurDay } from '@/utils'
 
 import type { HelperContext } from '../useHelper'
 import { DependencyMissingError } from './handles'
@@ -370,7 +371,16 @@ export async function useDeliveryWorkflow<C extends HelperContext<C, T, S>, T, S
         for (const [index, jobData] of helper.jobList.value.entries()) {
           current.value = index + 1
           if (isStop()) break
-          if (!canStartDelivery(helper.statistics.todayData.value.success, helper.conf.formData.deliveryLimit.value)) {
+          if (
+            !canStartDelivery(
+              verifiedDailyTotal(
+                helper.statistics.todayData.value.success,
+                helper.conf.formData.dailyGreetingBaseline,
+                getCurDay(),
+              ),
+              helper.conf.formData.deliveryLimit.value,
+            )
+          ) {
             stepMsg = '已达今日沟通上限，未继续发起沟通'
             status.value = 'stop'
             break
@@ -387,7 +397,16 @@ export async function useDeliveryWorkflow<C extends HelperContext<C, T, S>, T, S
           helper.jobMaps.set(jobData.key, data)
           helper.currentJob.value = jobData.key
           await execute(data, index)
-          if (!canStartDelivery(helper.statistics.todayData.value.success, helper.conf.formData.deliveryLimit.value)) {
+          if (
+            !canStartDelivery(
+              verifiedDailyTotal(
+                helper.statistics.todayData.value.success,
+                helper.conf.formData.dailyGreetingBaseline,
+                getCurDay(),
+              ),
+              helper.conf.formData.deliveryLimit.value,
+            )
+          ) {
             stepMsg = `投递达到数量限制`
             status.value = 'stop'
             break

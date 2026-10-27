@@ -1,9 +1,8 @@
 <script lang="ts" setup>
-import { InputMenuItem } from '@nuxt/ui'
 import { reactive } from 'vue'
 
 import LLMFormItem from '@/components/AI/LLMFormItem.vue'
-import { ModelConfData } from '@/composables/useModel'
+import type { ModelConfData } from '@/composables/useModel'
 import { openai } from '@/composables/useModel/openai'
 import type { LLMInfo } from '@/composables/useModel/type'
 
@@ -38,6 +37,7 @@ async function getIconGroups() {
 
     if (match) {
       const [_, baseName, type = 'default'] = match
+      if (!baseName) return
       if (!result[baseName]) result[baseName] = {}
       result[baseName][type] = `${baseUrl}${name}`
     }
@@ -45,7 +45,7 @@ async function getIconGroups() {
   return result
 }
 
-const iconGroups = ref<InputMenuItem[]>([])
+const iconGroups = ref<Array<{ label: string; value: string; avatar: { src: string } }>>([])
 
 onMounted(() => {
   getIconGroups().then((groups) => {
@@ -89,8 +89,8 @@ onMounted(() => {
             valueKey="value"
             createItem
             @create="
-              (x) => {
-                formData['avatar'] = x
+              (x: unknown) => {
+                if (typeof x === 'string') formData['avatar'] = x
               }
             "
           />
